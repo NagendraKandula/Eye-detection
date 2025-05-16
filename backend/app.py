@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app)  
 
 # Load the trained model once
-model = load_model('eye_disease_model.h5')
+model = load_model('eye_disease_model.tflite')
 
 # Define class names
 class_names = ['cataract', 'diabetic_retinopathy', 'glaucoma', 'normal']
