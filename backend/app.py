@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)  
 
 # Load the trained DenseNet model once
-model = load_model('densenet.h5')
+model = load_model('densenet.keras')
 
 # Load TFLite retina check model once
 interpreter = tf.lite.Interpreter(model_path="model_binaray.tflite")
