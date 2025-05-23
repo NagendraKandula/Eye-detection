@@ -1,6 +1,13 @@
 .App {
     text-align: center;
     min-height: 100vh;
+    background-color: #fff;
+    color: #000;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
 }
 
 .image-form {
@@ -21,17 +28,21 @@
     cursor: pointer;
     position: relative;
     margin-bottom: 20px;
+    transition: border-color 0.3s ease;
 }
 
 .image-viewer img {
     max-width: 100%;
     max-height: 300px;
     margin-top: 20px;
+    border-radius: 8px;
 }
 
 .image-viewer p {
     margin: 20px 0;
     color: #555;
+    user-select: none;
+    transition: color 0.3s ease;
 }
 
 button {
@@ -42,24 +53,29 @@ button {
     color: white;
     border: none;
     border-radius: 5px;
+    transition: background-color 0.3s ease;
 }
 
-button:hover {
+button:hover:not(:disabled) {
     background-color: #45a049;
 }
 
+button:disabled {
+    background-color: #9ccc9c;
+    cursor: not-allowed;
+}
 
 .dark-mode {
-    background-color: #333;
-    color: #fff;
+    background-color: #121212;
+    color: #eee;
 }
 
 .dark-mode .image-viewer {
     border-color: #888;
 }
 
-.dark-mode .image-viewer .drag-drop {
-    color : white;
+.dark-mode .image-viewer p {
+    color: #ccc;
 }
 
 .dark-mode button {
@@ -67,22 +83,35 @@ button:hover {
     color: #ddd;
 }
 
-.dark-mode button:hover {
+.dark-mode button:hover:not(:disabled) {
     background-color: #666;
 }
 
+/* Center the results section */
+.results-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;     /* horizontal center */
+    justify-content: center; /* vertical alignment within its space */
+    min-height: 200px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* Style individual result cards */
 .result-card {
     background: #ddd;
     border-radius: 8px;
-    padding : 20px;
-    margin : 10px 0;
+    padding: 20px;
+    margin: 10px 0;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;  /* center text inside card */
+    width: 100%;
+    max-width: 400px;
 }
 
 .dark-mode .result-card {
     background: #333;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 10px 0;
     box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
 }
