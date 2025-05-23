@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 import imghdr
+import os  # Required for os.environ
 
 app = Flask(__name__)
 CORS(app)  
@@ -96,4 +97,4 @@ def suggest_remedy(class_name):
     return remedies.get(class_name, 'No specific remedy found.')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))  # Fixed space
