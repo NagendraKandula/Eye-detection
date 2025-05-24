@@ -1,46 +1,48 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  
+from flask_cors import CORS
 from PIL import Image
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import load_model
 import imghdr
-import os  # Required for os.environ
 
 app = Flask(__name__)
-CORS(app)  
+CORS(app)
 
-# Load the trained DenseNet model once
-model = load_model('densenet.keras')
+# Load the retina check model (binary classifier)
+retina_interpreter = tf.lite.Interpreter(model_path="model_binaray.tflite")
+retina_interpreter.allocate_tensors()
+retina_input_details = retina_interpreter.get_input_details()
+retina_output_details = retina_interpreter.get_output_details()
 
-# Load TFLite retina check model once
-interpreter = tf.lite.Interpreter(model_path="model_binaray.tflite")
-interpreter.allocate_tensors()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+# Load the DenseNet disease classifier model
+disease_interpreter = tf.lite.Interpreter(model_path="densenet.tflite")
+disease_interpreter.allocate_tensors()
+disease_input_details = disease_interpreter.get_input_details()
+disease_output_details = disease_interpreter.get_output_details()
 
 class_names = ['cataract', 'diabetic_retinopathy', 'glaucoma', 'normal']
 image_size = (224, 224)
 
-def preprocess_image_for_tflite(img):
+def preprocess_image_for_tflite(img, input_details):
     img = img.resize(image_size).convert('RGB')
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
+    img_array = np.array(img)
+
+    # Handle input type (e.g., float32 or uint8)
+    input_type = input_details[0]['dtype']
+    if input_type == np.uint8:
+        img_array = np.expand_dims(img_array, axis=0).astype(np.uint8)
+    else:  # default to float32
+        img_array = np.expand_dims(img_array / 255.0, axis=0).astype(np.float32)
+
     return img_array
 
 def is_retina_image(img):
-    img_array = preprocess_image_for_tflite(img)
-    interpreter.set_tensor(input_details[0]['index'], img_array)
-    interpreter.invoke()
-    output_data = interpreter.get_tensor(output_details[0]['index'])
+    img_array = preprocess_image_for_tflite(img, retina_input_details)
+    retina_interpreter.set_tensor(retina_input_details[0]['index'], img_array)
+    retina_interpreter.invoke()
+    output_data = retina_interpreter.get_tensor(retina_output_details[0]['index'])
     prediction = np.round(output_data[0][0])
-    return bool(prediction)  # True if retina image, False otherwise
-
-def preprocess_image_for_classification(img):
-    img = img.resize(image_size).convert('RGB')
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-    return img_array
+    return bool(prediction)
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -60,13 +62,15 @@ def predict():
         file.stream.seek(0)
         img = Image.open(file).convert('RGB')
 
-        # Step 1: Retina check
+        # Step 1: Retina image validation
         if not is_retina_image(img):
             return jsonify({'error': 'Uploaded image is not a retina image. Please upload a valid retina image.'}), 400
 
-        # Step 2: Eye disease classification
-        img_array = preprocess_image_for_classification(img)
-        predictions = model.predict(img_array)
+        # Step 2: Disease classification
+        img_array = preprocess_image_for_tflite(img, disease_input_details)
+        disease_interpreter.set_tensor(disease_input_details[0]['index'], img_array)
+        disease_interpreter.invoke()
+        predictions = disease_interpreter.get_tensor(disease_output_details[0]['index'])
 
         if predictions.shape[-1] != len(class_names):
             return jsonify({'error': 'Model output shape mismatch.'}), 500
@@ -97,4 +101,4 @@ def suggest_remedy(class_name):
     return remedies.get(class_name, 'No specific remedy found.')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))  # Fixed space
+    app.run(debug=True)
