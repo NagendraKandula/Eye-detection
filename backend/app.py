@@ -8,35 +8,50 @@ import imghdr
 app = Flask(__name__)
 CORS(app)
 
-# Load the retina check model (binary classifier)
-retina_interpreter = tf.lite.Interpreter(model_path="model_binaray.tflite")
-retina_interpreter.allocate_tensors()
-retina_input_details = retina_interpreter.get_input_details()
-retina_output_details = retina_interpreter.get_output_details()
+# Globals for lazy-loaded models
+retina_interpreter = None
+retina_input_details = None
+retina_output_details = None
 
-# Load the DenseNet disease classifier model
-disease_interpreter = tf.lite.Interpreter(model_path="densenet.tflite")
-disease_interpreter.allocate_tensors()
-disease_input_details = disease_interpreter.get_input_details()
-disease_output_details = disease_interpreter.get_output_details()
+disease_interpreter = None
+disease_input_details = None
+disease_output_details = None
 
 class_names = ['cataract', 'diabetic_retinopathy', 'glaucoma', 'normal']
 image_size = (224, 224)
+
+def get_retina_model():
+    global retina_interpreter, retina_input_details, retina_output_details
+    if retina_interpreter is None:
+        retina_interpreter = tf.lite.Interpreter(model_path="model_binaray.tflite")
+        retina_interpreter.allocate_tensors()
+        retina_input_details = retina_interpreter.get_input_details()
+        retina_output_details = retina_interpreter.get_output_details()
+    return retina_interpreter, retina_input_details, retina_output_details
+
+def get_disease_model():
+    global disease_interpreter, disease_input_details, disease_output_details
+    if disease_interpreter is None:
+        disease_interpreter = tf.lite.Interpreter(model_path="densenet.tflite")
+        disease_interpreter.allocate_tensors()
+        disease_input_details = disease_interpreter.get_input_details()
+        disease_output_details = disease_interpreter.get_output_details()
+    return disease_interpreter, disease_input_details, disease_output_details
 
 def preprocess_image_for_tflite(img, input_details):
     img = img.resize(image_size).convert('RGB')
     img_array = np.array(img)
 
-    # Handle input type (e.g., float32 or uint8)
     input_type = input_details[0]['dtype']
     if input_type == np.uint8:
         img_array = np.expand_dims(img_array, axis=0).astype(np.uint8)
-    else:  # default to float32
+    else:
         img_array = np.expand_dims(img_array / 255.0, axis=0).astype(np.float32)
 
     return img_array
 
 def is_retina_image(img):
+    retina_interpreter, retina_input_details, retina_output_details = get_retina_model()
     img_array = preprocess_image_for_tflite(img, retina_input_details)
     retina_interpreter.set_tensor(retina_input_details[0]['index'], img_array)
     retina_interpreter.invoke()
@@ -67,6 +82,7 @@ def predict():
             return jsonify({'error': 'Uploaded image is not a retina image. Please upload a valid retina image.'}), 400
 
         # Step 2: Disease classification
+        disease_interpreter, disease_input_details, disease_output_details = get_disease_model()
         img_array = preprocess_image_for_tflite(img, disease_input_details)
         disease_interpreter.set_tensor(disease_input_details[0]['index'], img_array)
         disease_interpreter.invoke()
