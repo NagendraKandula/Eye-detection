@@ -27,7 +27,7 @@ function App() {
     formData.append('file', image);
 
     try {
-      const response = await fetch('https://eye-detection.onrender.com/predict', {
+      const response = await fetch('https://873f-2401-4900-8fcc-e5f5-100b-19d2-37bc-2a90.ngrok-free.app/predict', {
         method: 'POST',
         body: formData,
       });
