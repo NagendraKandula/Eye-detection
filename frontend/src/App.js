@@ -32,19 +32,26 @@ function App() {
         body: formData,
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      console.log('Server response:', text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (jsonError) {
+        throw new Error('Invalid JSON response');
+      }
 
       if (!response.ok) {
         alert(data.error || 'Error during prediction');
         setResults([]);
-        setLoading(false);
         return;
       }
 
       setResults(data.result);
     } catch (error) {
       console.error('Error during image submission:', error);
-      alert('Network error or server not reachable');
+      alert(error.message || 'Network error or server not reachable');
       setResults([]);
     } finally {
       setLoading(false);
